@@ -252,6 +252,25 @@
       })[0];
     };
 
+    ctrl.selectedItemsFilter = function(items, selectedItems) {
+      var filteredItems;
+
+      if(ctrl.selectedFilterBy && typeof ctrl.selectedFilterBy == 'string') {
+        var name = ctrl.selectedFilterBy;
+
+        filteredItems = items.filter(function(item) {
+          return !(selectedItems || []).some(function(selectedItem) {
+            return item[name] == selectedItem[name];
+          });
+        });
+
+      } else {
+        filteredItems = items.filter(function(i) {return selectedItems.indexOf(i) < 0;});
+      }
+
+      return filteredItems;
+    }
+
     ctrl.parseRepeatAttr = function(repeatAttr, groupByExp) {
       function updateGroups(items) {
         ctrl.groups = [];
@@ -297,7 +316,7 @@
           } else {
             if (ctrl.multiple){
               //Remove already selected items (ex: while searching)
-              var filteredItems = items.filter(function(i) {return ctrl.selected.indexOf(i) < 0;});
+              var filteredItems = ctrl.selectedItemsFilter(items, ctrl.selected);
               setItemsFn(filteredItems);
             }else{
               setItemsFn(items);
@@ -317,7 +336,7 @@
             setItemsFn(data);
           }else{
             if ( data !== undefined ) {
-              var filteredItems = data.filter(function(i) {return selectedItems.indexOf(i) < 0;});
+              var filteredItems = ctrl.selectedItemsFilter(data, selectedItems);
               setItemsFn(filteredItems);
             }
           }
@@ -854,25 +873,25 @@
 
     function _findApproxDupe(haystack, needle) {
       var dupeIndex = -1;
-	  if(angular.isArray(haystack)) {
-		  var tempArr = angular.copy(haystack);
-		  for (var i = 0; i <tempArr.length; i++) {
-			// handle the simple string version of tagging
-			if ( ctrl.tagging.fct === undefined ) {
-			  // search the array for the match
-			  if ( tempArr[i]+' '+ctrl.taggingLabel === needle ) {
-				dupeIndex = i;
-			  }
-			// handle the object tagging implementation
-			} else {
-			  var mockObj = tempArr[i];
-			  mockObj.isTag = true;
-			  if ( angular.equals(mockObj, needle) ) {
-				dupeIndex = i;
-			  }
-			}
-		  }
-	  }
+    if(angular.isArray(haystack)) {
+      var tempArr = angular.copy(haystack);
+      for (var i = 0; i <tempArr.length; i++) {
+      // handle the simple string version of tagging
+      if ( ctrl.tagging.fct === undefined ) {
+        // search the array for the match
+        if ( tempArr[i]+' '+ctrl.taggingLabel === needle ) {
+        dupeIndex = i;
+        }
+      // handle the object tagging implementation
+      } else {
+        var mockObj = tempArr[i];
+        mockObj.isTag = true;
+        if ( angular.equals(mockObj, needle) ) {
+        dupeIndex = i;
+        }
+      }
+      }
+    }
       return dupeIndex;
     }
 
@@ -947,6 +966,10 @@
             attrs.multiple.toLowerCase() === 'multiple' ||
             attrs.multiple.toLowerCase() === 'true'
         );
+
+        $select.selectedFilterBy = angular.isDefined(attrs.selectedFilterBy) ?
+          attrs.selectedFilterBy :
+          undefined;
 
         $select.closeOnSelect = function() {
           if (angular.isDefined(attrs.closeOnSelect)) {
